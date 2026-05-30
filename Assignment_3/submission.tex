@@ -1,0 +1,184 @@
+\documentclass[12pt, a4paper]{article}
+
+% Packages
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{booktabs}
+
+% Hyperlink styling
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Header / Footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Viraj Sawad}
+\lhead{Week 3 Assignment — Text-to-SQL Agent}
+\cfoot{\thepage}
+
+% Title styling
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+
+% ─────────────────────────────────────────────
+\begin{document}
+
+% ── Title Block ──────────────────────────────
+\begin{center}
+    {\LARGE \textbf{Week 3 Assignment Submission}} \\[0.4em]
+    {\large Agentic Text-to-SQL System} \\[0.6em]
+    \textbf{Student:} Viraj Sawad \\[0.3em]
+    \textbf{Date:} \today \\[0.6em]
+    \textbf{GitHub Repository:} \\
+    \href{https://github.com/VirajSawad1021/FuseAI/tree/main/Assignment_3}{%
+        \texttt{https://github.com/VirajSawad1021/FuseAI/tree/main/Assignment\_3}}
+\end{center}
+
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+% ── Overview ─────────────────────────────────
+\section{Assignment Overview}
+
+This assignment consists of four interconnected tasks that are completed sequentially. Each task builds upon the previous one, forming a complete \textbf{Text-to-SQL and agentic query execution system} on top of the ClassicModels PostgreSQL database developed in earlier sessions.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}cll@{}}
+\toprule
+\textbf{Task} & \textbf{Title} & \textbf{Description} \\
+\midrule
+1 & SQL Benchmark \& Evaluation Design     & Ground truth SQL queries + evaluation strategy \\
+2 & Query Understanding (Decomposition)    & Breaking NL questions into structured components \\
+3 & Text-to-SQL Pipeline                   & Automated SQL generation and execution system \\
+4 & Mini SQL Agent                         & Agentic system with self-correction and retry logic \\
+\bottomrule
+\end{tabular}
+\caption{Assignment Task Summary}
+\end{table}
+
+% ── Database Setup ────────────────────────────
+\section{Database Setup}
+
+The same PostgreSQL database and dataset from previous sessions are used throughout all tasks. The database is the \textbf{ClassicModels} schema, which contains 8 tables:
+
+\begin{itemize}[leftmargin=1.5cm]
+    \item \texttt{customers}, \texttt{orders}, \texttt{orderdetails}
+    \item \texttt{products}, \texttt{productlines}
+    \item \texttt{employees}, \texttt{offices}
+    \item \texttt{payments}
+\end{itemize}
+
+The database is seeded via \texttt{seed.sql} and runs on \textbf{PostgreSQL 16} inside a Docker container.
+
+% ── Implementation ────────────────────────────
+\section{Implementation}
+
+The system is built using \textbf{FastAPI} (Python) and exposes a REST API. The full source code is organized inside the \texttt{Assignment\_3/} folder of the repository.
+
+\subsection*{Task 1 — SQL Benchmark \& Evaluation Design}
+Ground truth SQL queries were written for all benchmark questions from the provided dataset. An evaluation framework was designed to assess the agent across dimensions including execution success rate, SQL correctness, join accuracy, and self-correction performance.
+
+The evaluation strategy document is available at:\\
+\href{https://github.com/VirajSawad1021/FuseAI/blob/main/Assignment_3/task1_evaluation_strategy.md}{\texttt{task1\_evaluation\_strategy.md}}
+
+\subsection*{Task 2 — Query Understanding (Decomposition)}
+Each natural language question is decomposed into structured components before SQL generation:
+\begin{itemize}
+    \item \textbf{Intent} — what is being asked
+    \item \textbf{Tables} — which tables are needed
+    \item \textbf{Columns} — which columns to retrieve
+    \item \textbf{Filters} — WHERE conditions
+    \item \textbf{Joins} — how tables are connected
+\end{itemize}
+This decomposition is performed by \textbf{GPT-4o-mini} via prompt chaining (\texttt{app/sql\_generator.py}).
+
+\subsection*{Task 3 — Text-to-SQL Pipeline}
+The pipeline follows these steps:
+
+\begin{enumerate}
+    \item Accept a natural language question via \texttt{POST /agent/sql}
+    \item Decompose the question using an LLM prompt
+    \item Generate a PostgreSQL \texttt{SELECT} query from the decomposition
+    \item Validate the query (block destructive operations)
+    \item Execute the query against PostgreSQL
+    \item Return structured results
+\end{enumerate}
+
+\subsection*{Task 4 — Mini SQL Agent (Agentic System)}
+The agent adds self-correction and retry logic on top of Task 3:
+
+\begin{itemize}
+    \item On query failure, the error message is fed back to the LLM
+    \item The agent attempts to fix and retry the query (up to \textbf{3 retries})
+    \item On final success, results are summarised in natural language
+    \item All steps are logged with timestamps and execution time
+\end{itemize}
+
+\textbf{Safety rule:} Only \texttt{SELECT} and \texttt{WITH} queries are permitted. Any \texttt{DROP}, \texttt{DELETE}, \texttt{UPDATE}, \texttt{INSERT}, or \texttt{ALTER} is blocked by the validator.
+
+% ── API Endpoints ─────────────────────────────
+\section{API Endpoints}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\midrule
+POST & \texttt{/agent/sql}            & Main agent: NL → SQL → result → summary \\
+GET  & \texttt{/customers}            & List customers (paginated) \\
+GET  & \texttt{/customers/\{id\}}     & Get single customer \\
+GET  & \texttt{/customers/count}      & Count of customers \\
+GET  & \texttt{/overall\_counts}      & Row counts for all 8 tables \\
+\bottomrule
+\end{tabular}
+\caption{Key API Endpoints}
+\end{table}
+
+\textbf{Interactive API docs:} \texttt{http://localhost:8000/docs} (Swagger UI)
+
+% ── Example ──────────────────────────────────
+\section{Example Agent Response}
+
+\textbf{Input:}
+\begin{verbatim}
+POST /agent/sql
+{ "question": "How many customers are from the USA?" }
+\end{verbatim}
+
+\textbf{Output:}
+\begin{verbatim}
+{
+  "sql":     "SELECT COUNT(*) FROM customers WHERE country = 'USA'",
+  "result":  [{"count": 36}],
+  "summary": "There are 36 customers from the USA.",
+  "status":  "success",
+  "retries": 0,
+  "execution_time_ms": 1842.3
+}
+\end{verbatim}
+
+% ── Repository ───────────────────────────────
+\section{Repository Link}
+
+The complete source code, evaluation strategy, task PDFs, and seed data are available at:
+
+\begin{center}
+    \Large
+    \href{https://github.com/VirajSawad1021/FuseAI/tree/main/Assignment_3}{%
+    \texttt{https://github.com/VirajSawad1021/FuseAI/tree/main/Assignment\_3}}
+\end{center}
+
+The repository is \textbf{public} and contains all deliverables for Tasks 1–4.
+
+\end{document}
