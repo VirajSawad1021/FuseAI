@@ -36,3 +36,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+
+# Large binary trace files (e.g. PyMC posteriors)
+*.pkl
