@@ -43,3 +43,4 @@ Thumbs.db
 # Large datasets and Excel spreadsheets
 *.xlsx
 *.csv
+*.pdf
