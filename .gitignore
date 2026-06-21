@@ -39,3 +39,7 @@ Thumbs.db
 
 # Large binary trace files (e.g. PyMC posteriors)
 *.pkl
+
+# Large datasets and Excel spreadsheets
+*.xlsx
+*.csv
